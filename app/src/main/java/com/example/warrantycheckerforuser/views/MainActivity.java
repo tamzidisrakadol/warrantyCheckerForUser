@@ -4,9 +4,11 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -38,11 +40,15 @@ public class MainActivity extends AppCompatActivity {
     ActivityMainBinding activityMainBinding;
     String barcodeValue;
     Boolean isBarcodeScanned = false;
+    ProgressDialog progressDialog;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activityMainBinding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(activityMainBinding.getRoot());
+        progressDialog=new ProgressDialog(MainActivity.this);
+        progressDialog.setTitle("Loading....");
+        progressDialog.setCancelable(false);
         getSupportActionBar().hide();
 
         activityMainBinding.barcodeTV.setOnClickListener(v -> {
@@ -51,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
 
         activityMainBinding.searchbutton.setOnClickListener(v -> {
             if (isBarcodeScanned){
-                activityMainBinding.cardView.setVisibility(View.VISIBLE);
+
                 fetchCustomerDetails();
             }
         });
@@ -59,31 +65,41 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchCustomerDetails(){
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, Constraints.customer_battery_details, response -> {
-            try {
-                JSONArray jsonArray = new JSONArray(response);
-                for (int i=0;i<jsonArray.length();i++){
-                    JSONObject jsonObject = jsonArray.getJSONObject(i);
-                    CustomerModel customerModel = new CustomerModel();
-                    customerModel.setCustomerName(jsonObject.getString("customerName"));
-                    customerModel.setPurchaseDate(jsonObject.getString("purchaseDate"));
-                    customerModel.setExpireDate(jsonObject.getString("ExpireDate"));
-                    activityMainBinding.customerNameTV.setText(customerModel.getCustomerName());
-                    activityMainBinding.purchaseDateTV.setText(customerModel.getPurchaseDate());
-                    String expireDate = customerModel.getExpireDate();
-                    daysLeft(expireDate);
-                }
-            } catch (JSONException e) {
-                throw new RuntimeException(e);
-            }
+        progressDialog.show();
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, Constraints.BASE_API, response -> {
+            activityMainBinding.searchbutton.setEnabled(false);
+           if (!response.equals("0")){
+               progressDialog.dismiss();
+               activityMainBinding.cardView.setVisibility(View.VISIBLE);
+               try {
+                   JSONObject jsonObject=new JSONObject(response);
+                   int id=jsonObject.getInt("id");
+                   int retailerID=jsonObject.getInt("retailer_id");
+                   String sellDate=jsonObject.getString("sell_date");
+                   String expireDate=jsonObject.getString("end_time");
+                   String user_name=jsonObject.getString("user_name");
+                   String user_address=jsonObject.getString("user_address");
+                   String user_phone=jsonObject.getString("user_phone");
+                   activityMainBinding.sellDateTV.setText("Sell :"+sellDate);
+                   activityMainBinding.nameTV.setText("Name : "+user_name);
+                   activityMainBinding.addressTV.setText("Address : "+user_address);
+                   daysLeft(expireDate);
+               } catch (JSONException e) {
+                   throw new RuntimeException(e);
+               }
+           }else{
+               progressDialog.dismiss();
+               Toast.makeText(this, "Product not found !", Toast.LENGTH_SHORT).show();
+           }
         }, error -> {
             Log.d("Etag",error.getMessage());
+            progressDialog.dismiss();
         }){
             @Nullable
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
                 HashMap<String,String> map = new HashMap<>();
-                map.put("batteryBarcode",barcodeValue);
+                map.put("code",barcodeValue);
                 return map;
             }
         };
@@ -109,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void daysLeft(String expireDate){
         Date currentDate = Calendar.getInstance().getTime();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         String formatCurrentDate = sdf.format(currentDate);
 
 

@@ -1,24 +1,21 @@
 package com.example.warrantycheckerforuser.model;
 
 public class CustomerModel {
-    String customerName,purchaseDate,expireDate;
+    int id;
+    String purchaseDate,expireDate;
 
-    public CustomerModel( String customerName, String purchaseDate, String expireDate) {
-
-        this.customerName = customerName;
+    public CustomerModel(int id, String purchaseDate, String expireDate) {
+        this.id = id;
         this.purchaseDate = purchaseDate;
         this.expireDate = expireDate;
     }
 
-    public CustomerModel() {
+    public int getId() {
+        return id;
     }
 
-    public String getCustomerName() {
-        return customerName;
-    }
-
-    public void setCustomerName(String customerName) {
-        this.customerName = customerName;
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getPurchaseDate() {
